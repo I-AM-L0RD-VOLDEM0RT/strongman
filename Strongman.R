@@ -50,143 +50,93 @@ ui <- dashboardPage(
 
 server <- function(input, output, session) {
   
- comp_info <- reactiveValues()
-
- # browser()
-
- # colnames(comp_info) <- c("First Name", "Last Name", "Division")
-
- reactive({if(input$update_competitor == 0) {
-
- comp_info$values <<- 
-   data.frame("First Name" = NA, "Last Name" = NA,
-                                "Division" = NA)
-
-
-
- }else{
-
-   comp_info$values <<-
-
-     data.frame("First Name" = input$first_name, "Last Name" = input$last_name,
-                                  "Division" = input$division)
-
-   # colnames(comp_info$values) <- c("First Name", "Last Name", "Division")
+observeEvent(input$update_competitor, {
   
- }
-   
-   
- })
-
- # reactive({
- #   if(input$update_competitor == 1){
- #     
- #     comp_info$values
- #     
- #   }else{
- 
- 
- 
- new_competitor <- observe({
-  if(input$update_competitor > 0) {
+  if(input$update_competitor[1] == 1) {
     
-    # browser()
+    comp_info <- isolate(c(input$first_name, input$last_name, input$division))
+    comp_info <- t(comp_info)
+    colnames(comp_info) <- c("First Name", "Last Name", "Division")
+    rownames(comp_info) <- NULL
+    comp_info <- as.data.frame(comp_info)
     
-     new_entry <- isolate(c(input$first_name, input$last_name, input$division))
-     # isolate(comp_info$values[nrow(comp_info$values) + 1] <- c(input$first_name, input$last_name,input$division))
-
-     isolate(comp_info$values <- rbind(comp_info$values, new_entry))
-
-     colnames(comp_info$values) <- c("First Name", "Last Name", "Division")
+    comp_info <- comp_info %>% 
+      filter(`First Name` != "") %>% 
+      filter(`Last Name` != "") %>% 
+      distinct
     
-     # browser()
-       
-     comp_info$values <<- as.data.frame(comp_info$values)
-     
-     # comp_info$values <<- comp_info$values %>% 
-     #   distinct(.keep_all = T)
-       
-      # comp_info$values <<- comp_info$values[,1]
-      
-     
-     # comp_info$values <- as.matrix(comp_info$values)
+    comp_info <<- comp_info
     
-     # browser()
-  
+  }else{
+    
+    new_entry <- isolate(c(input$first_name, input$last_name, input$division))
+    new_entry <- t(new_entry)
+    new_entry <- as.data.frame(new_entry)
+    colnames(new_entry) <- c("First Name", "Last Name", "Division")
+    rownames(new_entry) <- NULL
+    
+    comp_info <- rbind(comp_info, new_entry)
+    comp_info <- comp_info %>% 
+      filter(`First Name` != "") %>% 
+      filter(`Last Name` != "") %>% 
+      distinct()
+    comp_info <<- comp_info
+    
   }
-   
-   # if(input$update_competitor == 1) {
-   #   
-   #   # browser()
-   #  
-   #  colnames(comp_info$values) <- c("First Name", "Last Name", "Division")
-   #  
-   # }else{
-   #   
-   #   comp_info$values <- NULL
-   # }
-   
-   
+  
+  if(input$first_name == "" | input$last_name == "") {
+    
+    if(input$first_name == "") {
+      
+      confirmSweetAlert(session = session, 
+                        inputId = "no_first_name",
+                        title = "Please Input Competitor First Name!",
+                        type = "warning",
+                        btn_labels = "OK!",
+                        danger_mode = T)
+      
+    }
+    
+    if(input$last_name == "") {
+      
+      confirmSweetAlert(session = session, 
+                        inputId = "no_last_name",
+                        title = "Please Input Competitor Last Name!",
+                        type = "warning",
+                        btn_labels = "OK!",
+                        danger_mode = T)
+      
+    }
+    
+    if(input$first_name == "" & input$last_name == "") {
+      
+      confirmSweetAlert(session = session, 
+                        inputId = "no_full_name",
+                        title = "Please Input Competitor Name!",
+                        type = "warning",
+                        btn_labels = "OK!",
+                        danger_mode = T)
+      
+    }
+    
+  }else{
+    
+    confirmSweetAlert(session = session, 
+                      inputId = "competitor_success",
+                      title = "Competitor Successfully Added!",
+                      type = "success",
+                      btn_labels = "OK!",
+                      danger_mode = T)
+    
+  }
+  
+  output$competitor_table <- renderTable({
+    
+    comp_info
+    
   })
- 
- # comp_info$values
- #   }
-   
- 
-
-   # if(input$update_competitor > 0) {
-   # 
-   #   # browser()
-   # 
-   # # comp_info$values <- comp_info$values %>%
-   # #   filter(!is.null(comp_info$value))
-   # 
-   # comp_info$values <- comp_info$values[, -1]
-
-   
-   # })
- 
- 
- 
- 
- output$competitor_table <- renderTable({
-   
-   # browser()
-   
-   # comp_info <- reactiveValues()
-   # 
-   # if(input$update_competitor == 0) {
-   #   
-   #   comp_info$values <- data.frame("First Name" = "First Name", "Last Name" = "Last Name",
-   #                                  "Division" = "Division")
-   #   
-   # }else{
-   #   
-   #   comp_info$values <- data.frame("First Name" = input$first_name, "Last Name" = input$last_name,
-   #                                  "Division" = input$division)
-   #  
-   # }
-   # 
-   # new_competitor <- observe({
-   #   if(input$update_competitor > 1) {
-   #     new_entry <- isolate(c(input$first_name, input$last_name, input$division))
-   #     # isolate(comp_info$values[nrow(comp_info$values) + 1] <- c(input$first_name, input$last_name,input$division))
-   #     
-   #     isolate(comp_info$values <- rbind(comp_info$values, new_entry))
-   #     
-   #   }
-   # })
-   
-   if(is.null(comp_info$values)) {
-     
-     return()
-     
-   }else{
-   
-   comp_info$values <- comp_info$values %>% 
-     distinct()
-   }
- })
+  
+})
  
 }
 
