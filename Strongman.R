@@ -3,6 +3,9 @@ library(shinydashboard)
 library(shinyjs)
 library(dplyr)
 library(stringr)
+library(shinyWidgets)
+
+new_entry <- NULL
 
 ui <- dashboardPage(
   
@@ -72,6 +75,7 @@ observeEvent(input$update_competitor, {
     new_entry <- isolate(c(input$first_name, input$last_name, input$division))
     new_entry <- t(new_entry)
     new_entry <- as.data.frame(new_entry)
+    new_entry <<- new_entry
     colnames(new_entry) <- c("First Name", "Last Name", "Division")
     rownames(new_entry) <- NULL
     
@@ -81,8 +85,14 @@ observeEvent(input$update_competitor, {
       filter(`Last Name` != "") %>% 
       distinct()
     comp_info <<- comp_info
-    
+    # browser()
   }
+  
+  # browser()
+  
+  row_in_comp <- new_entry %in% comp_info
+  truth <- c(TRUE, TRUE, TRUE)
+  true_or_false <- all.equal(row_in_comp, truth)
   
   if(input$first_name == "" | input$last_name == "") {
     
@@ -125,6 +135,17 @@ observeEvent(input$update_competitor, {
                       inputId = "competitor_success",
                       title = "Competitor Successfully Added!",
                       type = "success",
+                      btn_labels = "OK!",
+                      danger_mode = T)
+    
+  }
+  
+  if(true_or_false == TRUE) {
+    
+    confirmSweetAlert(session = session,
+                      inputId = "duplicate",
+                      title = "Competitor Already Input!",
+                      type = "warning",
                       btn_labels = "OK!",
                       danger_mode = T)
     
