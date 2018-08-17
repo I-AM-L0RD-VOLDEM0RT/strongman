@@ -47,7 +47,12 @@ ui <- dashboardPage(
                ))),
       
       tabItem(tabName = "event",
-              h2("Select Events for Competition:")
+              h2("Select Events for Competition:"),
+              fluidRow(column(4,
+                              textInput(inputId = "event_input", label = "Please Input Event Name"),
+                              actionButton(inputId = "event_add", label = "Add Event")),
+                       fluidRow(column(3, tableOutput("event_table")))
+              )
               ),
       
       tabItem(tabName = "score",
@@ -383,6 +388,131 @@ observeEvent(input$update_competitor, {
   updateTextInput(session = session, inputId = "last_name", label = "Last Name", value = "")
   updateSelectizeInput(session = session, inputId = "division",
                        choices = division_info$Division, selected = NULL)
+  
+})
+
+observeEvent(input$event_add, {
+  
+  # browser()
+  
+  if(input$event_input == ""){
+    
+    confirmSweetAlert(session = session, 
+                      inputId = "no_event_input",
+                      title = "You need to input an event!",
+                      type = "warning",
+                      btn_labels = "OK!",
+                      danger_mode = T)
+    
+  }else{
+    
+    if(input$event_add[1] == 1) {
+      
+      event_info <- isolate(input$event_input)
+      event_info <- as.data.frame(event_info)
+      # division_info <- t(division_info)
+      colnames(event_info)[1] <- ("Event")
+      # event_info <- division_info 
+      rownames(event_info) <- NULL
+      # division_info <- as.data.frame(division_info)
+      
+      unfiltered_event_info <<- event_info
+      
+      event_info <- event_info %>% 
+        filter(Event != "") %>% 
+        # filter(`Last Name` != "") %>% 
+        distinct()
+      
+      event_info <<- event_info
+      
+      confirmSweetAlert(session = session,
+                        inputId = "event_success1",
+                        title = "Event successfully included!",
+                        type = "success",
+                        btn_labels = "OK!",
+                        danger_mode = T)
+      
+    }else{
+      
+      new_event <- isolate(input$event_input)
+      # new_entry <- t(new_entry)
+      new_event <- as.data.frame(new_event)
+      new_event <<- new_event
+      colnames(new_event)[1] <- ("Event")
+      rownames(new_event) <- NULL
+      
+      # browser()
+      
+      # if(nrow(union(new_entry, comp_info)) == nrow(comp_info)) {
+      #   
+      #   duplicate <- T
+      #   duplicate <<- duplicate
+      #   
+      # }else{
+      #   
+      #   duplicate <- F
+      #   duplicate <<- duplicate
+      #   
+      # }
+      
+      event_info <- rbind(event_info, new_event)
+      unfiltered_event_info <<- event_info
+      event_info <- event_info %>% 
+        filter(Event != "") %>% 
+        # filter(`Last Name` != "") %>% 
+        distinct()
+      event_info <<- event_info
+      # browser()
+      
+      confirmSweetAlert(session = session,
+                        inputId = "event_success2",
+                        title = "Event successfully included!",
+                        type = "success",
+                        btn_labels = "OK!",
+                        danger_mode = T)
+      
+    }
+    
+    if(input$event_add[1] > 1) {
+      
+      # browser()
+      
+      if(nrow(event_info) < nrow(unfiltered_event_info)) {
+        
+        # browser()
+        
+        confirmSweetAlert(session = session,
+                          inputId = "duplicate_event",
+                          title = "Event Already Input!",
+                          type = "warning",
+                          btn_labels = "OK!",
+                          danger_mode = T)
+        
+        unfiltered_event_info <- unfiltered_event_info %>% 
+          filter(Event != "") %>% 
+          # filter(`Last Name` != "") %>% 
+          distinct()
+        
+      }
+      
+    }
+    
+    output$event_table <- renderTable({
+      
+      event_info
+      
+    })
+    
+    # browser()
+    
+    updateTextInput(session = session, inputId = "event_input", label = "Please Input Event Name",
+                    value = "")
+    
+    # updateSelectizeInput(session = session, inputId = "division",
+    #                      choices = division_info$Division, selected = NULL)
+    
+    
+  }
   
 })
  
