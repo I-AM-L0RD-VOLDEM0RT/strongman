@@ -4,6 +4,8 @@ library(shinyjs)
 library(dplyr)
 library(stringr)
 library(shinyWidgets)
+library(devtools)
+library(fontawesome)
 
 new_entry <- NULL
 unfiltered_comp_info <- NULL
@@ -17,6 +19,10 @@ ui <- dashboardPage(
       menuItem("Competition Classes", tabName = "classes", icon = icon("magic")),
       menuItem("Competitor Input", tabName = "competitor", icon = icon("address-card")),
       menuItem("Event Name", tabName = "event", icon = icon("empire")),
+      menuItem("Edit  Tables", tabName = "edits", icon = icon("minus-circle"),
+               menuSubItem("Edit Division", tabName = "division_edit"),
+               menuSubItem("Edit Competitor Input", tabName = "competitor_edit"),
+               menuSubItem("Edit Events", tabName = "event_edit")),
       menuItem("Scoring", tabName = "score", icon = icon("first-order")),
       menuItem("Current Standings", tabName = "standings", icon = icon("rebel"))
     )
@@ -28,7 +34,7 @@ ui <- dashboardPage(
               fluidRow(column(4,
               textInput(inputId = "division_input", label = "Please Input Division Name"),
               actionButton(inputId = "division_add", label = "Add Division")),
-              fluidRow(column(3, tableOutput("division_table")))
+              fluidRow(column(3, dataTableOutput("division_table")))
                      )),
       tabItem(tabName = "competitor",
               h2("Input Competitor Information:"),
@@ -61,7 +67,17 @@ ui <- dashboardPage(
       
       tabItem(tabName = "standings",
               h2("Get Current Standings:")
+              ),
+      tabItem(tabName = "division_edit",
+              h2("Edit Division Input:")
+              ),
+      tabItem(tabName = "competitor_edit",
+              h2("Edit Competitor Input:")
+              ),
+      tabItem(tabName = "event_edit",
+              h2("Edit Event Input:")
               )
+      
     )
   )
   
@@ -175,11 +191,9 @@ server <- function(input, output, session) {
         
       }
     
-    output$division_table <- renderTable({
+    output$division_table <- renderDataTable(
       
-      division_info
-      
-    })
+     division_info, rownames = F, selection = "none", editable = T)
     
    # browser()
     
@@ -515,6 +529,72 @@ observeEvent(input$event_add, {
   }
   
 })
+
+
+observeEvent(input$division_table_cell_edit, {
+  
+  division_proxy <- dataTableProxy("division_table")
+  
+  # browser()
+  
+  # Add a conditional if the value is null, but otherwise,
+  # you don't need to worry about a character being numeric,
+  # so everything should work great. Push it across the board.
+  
+  # if(input$division_table_cell_edit$value == "") {
+  #   
+  #   # browser()
+  #   
+  #   div_edit_info = input$division_table_cell_edit
+  #   str(div_edit_info)
+  #   i = div_edit_info$row
+  #   # j = div_edit_info$col
+  #   v = div_edit_info$value
+  #   div_as_character <- as.character(division_info[i, 1])
+  #   division_info[i] <<- DT::coerceValue(div_as_character, div_as_character)
+  #   replaceData(division_proxy, division_info, resetPaging = FALSE)
+  #   
+  #   output$division_table <- renderDataTable(division_info, rownames =F, editable = T, selection = "none")
+  #   
+  #   confirmSweetAlert(session = session, 
+  #                     inputId = "div_edit_empty",
+  #                     title = "There is no value to change the division to!",
+  #                     text = "If you would like to delete, switch to the removal tab!",
+  #                     type = "warning",
+  #                     btn_labels = "OK!", 
+  #                     danger_mode = T)
+  #   
+  # }else{
+  
+  div_edit_info = input$division_table_cell_edit
+  str(div_edit_info)
+  i = div_edit_info$row
+  # j = div_edit_info$col
+  v = div_edit_info$value
+  div_as_character <- as.character(division_info[i, 1])
+  division_info[i, 1] <<- DT::coerceValue(v, div_as_character)
+  replaceData(division_proxy, division_info, resetPaging = FALSE)
+  
+  division_info <- division_info %>% 
+    distinct() %>% 
+    filter(Division != "")
+  
+  unfiltered_division_info <<- division_info
+  
+  output$division_table <- renderDataTable(division_info, rownames =F, editable = T, selection = "none")
+  
+  confirmSweetAlert(session = session, 
+                    inputId = "edit_division_success", 
+                    title = "Successfully changed division!",
+                    type = "success",
+                    btn_labels = "OK!", 
+                    danger_mode = T)
+  
+  # }
+  
+})
+
+# observeEvent(input$test, browser())
  
 }
 
