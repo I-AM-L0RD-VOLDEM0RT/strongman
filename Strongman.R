@@ -57,7 +57,7 @@ ui <- dashboardPage(
               fluidRow(column(4,
                               textInput(inputId = "event_input", label = "Please Input Event Name"),
                               actionButton(inputId = "event_add", label = "Add Event")),
-                       fluidRow(column(3, tableOutput("event_table")))
+                       fluidRow(column(3, dataTableOutput("event_table")))
               )
               ),
       
@@ -435,6 +435,7 @@ observeEvent(input$event_add, {
       rownames(event_info) <- NULL
       # division_info <- as.data.frame(division_info)
       
+      event_info$Event <- as.character(event_info$Event)
       unfiltered_event_info <<- event_info
       
       event_info <- event_info %>% 
@@ -475,7 +476,9 @@ observeEvent(input$event_add, {
       # }
       
       event_info <- rbind(event_info, new_event)
-      unfiltered_event_info <<- event_info
+      event_info$Event <- as.character(event_info$Event)
+      unfiltered_event_info <<- event_info %>% 
+        filter(Event != "")
       event_info <- event_info %>% 
         filter(Event != "") %>% 
         # filter(`Last Name` != "") %>% 
@@ -516,11 +519,7 @@ observeEvent(input$event_add, {
       
     }
     
-    output$event_table <- renderTable({
-      
-      event_info
-      
-    })
+    output$event_table <- renderDataTable(event_info, rownames = F, editable = T, selection = "none")
     
     # browser()
     
@@ -616,7 +615,86 @@ observeEvent(input$division_table_cell_edit, {
   
 })
 
-# observeEvent(input$test, browser())
+observeEvent(input$event_table_cell_edit, {
+  
+  event_proxy <- dataTableProxy("event_table")
+  
+  # browser()
+  
+  # Add a conditional if the value is null, but otherwise,
+  # you don't need to worry about a character being numeric,
+  # so everything should work great. Push it across the board.
+  
+  # if(input$division_table_cell_edit$value == "") {
+  #   
+  #   # browser()
+  #   
+  #   div_edit_info = input$division_table_cell_edit
+  #   str(div_edit_info)
+  #   i = div_edit_info$row
+  #   # j = div_edit_info$col
+  #   v = div_edit_info$value
+  #   div_as_character <- as.character(division_info[i, 1])
+  #   division_info[i] <<- DT::coerceValue(div_as_character, div_as_character)
+  #   replaceData(division_proxy, division_info, resetPaging = FALSE)
+  #   
+  #   output$division_table <- renderDataTable(division_info, rownames =F, editable = T, selection = "none")
+  #   
+  #   confirmSweetAlert(session = session, 
+  #                     inputId = "div_edit_empty",
+  #                     title = "There is no value to change the division to!",
+  #                     text = "If you would like to delete, switch to the removal tab!",
+  #                     type = "warning",
+  #                     btn_labels = "OK!", 
+  #                     danger_mode = T)
+  #   
+  # }else{
+  
+  event_edit_info = input$event_table_cell_edit
+  # str(div_edit_info)
+  i = event_edit_info$row
+  # j = div_edit_info$col
+  v = event_edit_info$value
+  # browser()
+  # div_as_character <- as.character(division_info[i, 1])
+  # browser()
+  event_info[i, 1] <<- coerceValue(v, as.character(event_info[i, 1]))
+  replaceData(event_proxy, event_info, resetPaging = FALSE)
+  
+  # browser()
+  
+  event_info <- event_info %>% 
+    distinct() %>% 
+    filter(Event != "")
+  
+  unfiltered_event_info <<- event_info
+  
+  output$event_table <- renderDataTable(event_info, rownames = F, editable = T, selection = "none")
+  
+  # updateSelectizeInput(session = session, inputId = "division",
+  #                      choices = division_info$Division, selected = NULL)
+  
+  if(input$event_table_cell_edit$value == "") {
+    
+    confirmSweetAlert(session = session, 
+                      inputId = "remove_event_success", 
+                      title = "Successfully removed event!",
+                      type = "success",
+                      btn_labels = "OK!", 
+                      danger_mode = T)
+    
+  }else{
+    
+    confirmSweetAlert(session = session, 
+                      inputId = "edit_event_success", 
+                      title = "Successfully changed event!",
+                      type = "success",
+                      btn_labels = "OK!", 
+                      danger_mode = T)
+    
+  }
+  
+})
  
 }
 
