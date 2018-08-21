@@ -117,6 +117,7 @@ server <- function(input, output, session) {
         # filter(`Last Name` != "") %>% 
         distinct()
       
+      division_info$Division <- as.character(division_info$Division)
       division_info <<- division_info
       
       confirmSweetAlert(session = session,
@@ -150,11 +151,13 @@ server <- function(input, output, session) {
       # }
       
       division_info <- rbind(division_info, new_division)
-      unfiltered_division_info <<- division_info
+      unfiltered_division_info <<- division_info %>% 
+        filter(Division != "")
       division_info <- division_info %>% 
         filter(Division != "") %>% 
         # filter(`Last Name` != "") %>% 
         distinct()
+      division_info$Division <- as.character(division_info$Division)
       division_info <<- division_info
       # browser()
       
@@ -409,7 +412,9 @@ observeEvent(input$event_add, {
   
   # browser()
   
-  if(input$event_input == ""){
+  if(input$event_input == "") {
+    
+    # browser()
     
     confirmSweetAlert(session = session, 
                       inputId = "no_event_input",
@@ -572,8 +577,11 @@ observeEvent(input$division_table_cell_edit, {
   # j = div_edit_info$col
   v = div_edit_info$value
   div_as_character <- as.character(division_info[i, 1])
-  division_info[i, 1] <<- DT::coerceValue(v, div_as_character)
+  # browser()
+  division_info[i, 1] <<- coerceValue(v, as.character(division_info[i, 1]))
   replaceData(division_proxy, division_info, resetPaging = FALSE)
+  
+  # browser()
   
   division_info <- division_info %>% 
     distinct() %>% 
@@ -581,16 +589,30 @@ observeEvent(input$division_table_cell_edit, {
   
   unfiltered_division_info <<- division_info
   
-  output$division_table <- renderDataTable(division_info, rownames =F, editable = T, selection = "none")
+  output$division_table <- renderDataTable(division_info, rownames = F, editable = T, selection = "none")
   
-  confirmSweetAlert(session = session, 
+  updateSelectizeInput(session = session, inputId = "division",
+                       choices = division_info$Division, selected = NULL)
+  
+ if(input$division_table_cell_edit$value == "") {
+   
+   confirmSweetAlert(session = session, 
+                     inputId = "remove_division_success", 
+                     title = "Successfully removed division!",
+                     type = "success",
+                     btn_labels = "OK!", 
+                     danger_mode = T)
+   
+ }else{
+  
+   confirmSweetAlert(session = session, 
                     inputId = "edit_division_success", 
                     title = "Successfully changed division!",
                     type = "success",
                     btn_labels = "OK!", 
                     danger_mode = T)
   
-  # }
+  }
   
 })
 
