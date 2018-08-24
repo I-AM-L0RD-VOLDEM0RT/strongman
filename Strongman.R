@@ -6,6 +6,7 @@ library(stringr)
 library(shinyWidgets)
 library(devtools)
 library(fontawesome)
+library(DT)
 
 new_entry <- NULL
 unfiltered_comp_info <- NULL
@@ -48,7 +49,7 @@ ui <- dashboardPage(
               actionButton(inputId = "update_competitor", label = "Add Competitor")
                ),
               fluidRow( 
-              column(3, tableOutput("competitor_table"))
+              column(3, dataTableOutput("competitor_table"))
               # # )
                ))),
       
@@ -193,10 +194,12 @@ server <- function(input, output, session) {
         }
         
       }
-    
-    output$division_table <- renderDataTable(
       
-     division_info, rownames = F, selection = "none", editable = T)
+      # browser()
+      
+      # division_data_table <- DT::datatable(division_info, rownames = F, selection = "none", editable = T)
+    
+    output$division_table <- renderDataTable(division_info, rownames = F, selection = "none", editable = T)
     
    # browser()
     
@@ -257,6 +260,10 @@ observeEvent(input$update_competitor, {
       filter(`Last Name` != "") %>% 
       distinct()
     
+    comp_info$`First Name` <- as.character(comp_info$`First Name`)
+    comp_info$`Last Name` <- as.character(comp_info$`Last Name`)
+    comp_info$Division <- as.character(comp_info$Division)
+    
     comp_info <<- comp_info
     
     # browser()
@@ -300,6 +307,11 @@ observeEvent(input$update_competitor, {
       filter(`First Name` != "") %>% 
       filter(`Last Name` != "") %>% 
       distinct()
+    
+    comp_info$`First Name` <- as.character(comp_info$`First Name`)
+    comp_info$`Last Name` <- as.character(comp_info$`Last Name`)
+    comp_info$Division <- as.character(comp_info$Division)
+    
     comp_info <<- comp_info
     
     # browser()
@@ -393,11 +405,7 @@ observeEvent(input$update_competitor, {
   }
   }
   
-  output$competitor_table <- renderTable({
-    
-    comp_info
-    
-  })
+  output$competitor_table <- renderDataTable(comp_info, rownames = F, editable = T, selection = "none")
     }
   }
   
@@ -695,6 +703,152 @@ observeEvent(input$event_table_cell_edit, {
   }
   
 })
+
+observeEvent(input$competitor_table_cell_edit, {
+  
+  competitor_proxy <- dataTableProxy("competitor_table")
+  
+  # browser()
+  
+  # Add a conditional if the value is null, but otherwise,
+  # you don't need to worry about a character being numeric,
+  # so everything should work great. Push it across the board.
+  
+  # competitor_edit_info = input$competitor_table_cell_edit
+  # # str(div_edit_info)
+  # i = competitor_edit_info$row
+  # j = competitor_edit_info$col
+  # v = competitor_edit_info$value
+  # browser()
+  # div_as_character <- as.character(division_info[i, 1])
+  
+  if(input$competitor_table_cell_edit$value == "") {
+    
+    confirmSweetAlert(session = session,
+                      inputId = "remove_entire_competitor_line",
+                      title = "This will remove entire competitor row!",
+                      text = "Are you sure you wish to proceed?",
+                      btn_labels = c("No", "Yes"),
+                      danger_mode = T)
+
+  }else{
+
+    comp_edit_info = input$competitor_table_cell_edit
+    # str(comp_edit_info)
+    i = comp_edit_info$row
+    j = comp_edit_info$col
+    v = comp_edit_info$value
+    # comp_as_character <- as.character(division_info[i, j + 1])
+    # division_info[i] <<- DT::coerceValue(div_as_character, div_as_character)
+    # replaceData(division_proxy, division_info, resetPaging = FALSE)
+    # 
+    # # browser()
+    # 
+    # output$division_table <- renderDataTable(division_info, rownames =F, editable = T, selection = "none")
+    # 
+    # confirmSweetAlert(session = session,
+    #                   inputId = "div_edit_empty",
+    #                   title = "There is no value to change the division to!",
+    #                   text = "If you would like to delete, switch to the removal tab!",
+    #                   type = "warning",
+    #                   btn_labels = "OK!",
+    #                   danger_mode = T)
+
+  # }else{
+  
+  comp_info[i, j + 1] <<- coerceValue(v, as.character(comp_info[i, j + 1]))
+  replaceData(competitor_proxy, comp_info, resetPaging = FALSE)
+  
+  comp_info <- comp_info %>% 
+    distinct() %>% 
+    filter(`First Name` != "") %>% 
+    filter(`Last Name` != "") %>% 
+    filter(Division != "")
+  
+  unfiltered_comp_info <<- comp_info
+  
+  output$competitor_table <- renderDataTable(comp_info, rownames = F, editable = T, selection = "none")
+  
+  # if(input$competitor_table_cell_edit$value == "") {
+  #   
+  #   confirmSweetAlert(session = session, 
+  #                     inputId = "remove_competitor_success", 
+  #                     title = "Successfully removed event!",
+  #                     type = "success",
+  #                     btn_labels = "OK!", 
+  #                     danger_mode = T)
+  #   
+  # }else{
+    
+    confirmSweetAlert(session = session, 
+                      inputId = "edit_competitor_success", 
+                      title = "Successfully changed competitor!",
+                      type = "success",
+                      btn_labels = "OK!", 
+                      danger_mode = T)
+    
+  # }
+  }
+})
+
+observeEvent(input$remove_entire_competitor_line, {
+  
+  # browser()
+  
+  competitor_proxy <- dataTableProxy("competitor_table")
+  
+  comp_edit_info = input$competitor_table_cell_edit
+  # str(comp_edit_info)
+  i = comp_edit_info$row
+  j = comp_edit_info$col
+  v = comp_edit_info$value
+  
+  if(input$remove_entire_competitor_line == T){
+    
+    comp_info[i, j + 1] <<- coerceValue(v, as.character(comp_info[i, j + 1]))
+    replaceData(competitor_proxy, comp_info, resetPaging = FALSE)
+    
+    comp_info <- comp_info %>% 
+      distinct() %>% 
+      filter(`First Name` != "") %>% 
+      filter(`Last Name` != "") %>% 
+      filter(Division != "")
+    
+    unfiltered_comp_info <<- comp_info
+    
+    output$competitor_table <- renderDataTable(comp_info, rownames = F, editable = T, selection = "none")
+    
+    confirmSweetAlert(session = session, 
+                      inputId = "comp_remove_success",
+                      title = "Competitor data successfully removed!", 
+                      type = "success",
+                      btn_labels = "OK!",
+                      danger_mode = T)
+    
+  }else{
+    
+    # browser()
+    
+    comp_as_character <- as.character(comp_info[i, j + 1])
+    comp_info[i, j + 1] <<- DT::coerceValue(comp_as_character, comp_as_character)
+    replaceData(competitor_proxy, comp_info, resetPaging = FALSE)
+
+    # browser()
+
+    output$competitor_table <- renderDataTable(comp_info, rownames =F, editable = T, selection = "none")
+
+    confirmSweetAlert(session = session, 
+                      inputId = "comp_same_success",
+                      title = "Competitor data remained the same!",
+                      text =  "Edits can still be made info is not correct",
+                      type = "success",
+                      btn_labels = "OK!",
+                      danger_mode = T)
+    
+  }
+  
+})
+
  
 }
 
