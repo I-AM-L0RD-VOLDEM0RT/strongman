@@ -33,10 +33,18 @@ ui <- dashboardPage(
       tabItem(tabName = "classes",
               h2("Weight Classes"),
               fluidRow(column(4,
-              textInput(inputId = "division_input", label = "Please Input Division Name"),
-              actionButton(inputId = "division_add", label = "Add Division")),
-              fluidRow(column(3, dataTableOutput("division_table")))
-                     )),
+              # textInput(inputId = "division_input", label = "Please Input Division Name"),
+              uiOutput("division_action_buttons")),
+            
+              column(3, dataTableOutput("division_table"))
+              # actionButton(inputId = "division_add", label = "Add Division"),
+              # actionButton(inputId = "division_save", label = "Finalize Divisions")
+              )#,
+              
+              # fluidRow(column(3, dataTableOutput("division_table")))
+              # fluidRow(textOutput("blank")), fluidRow(),
+              # fluidRow(column(4, actionButton(inputId = "division_save", label = "Finalize Divisions")))
+                     ),
       tabItem(tabName = "competitor",
               h2("Input Competitor Information:"),
                fluidRow(
@@ -53,14 +61,23 @@ ui <- dashboardPage(
               # # )
                ))),
       
+      # tabItem(tabName = "event",
+      #         h2("Select Events for Competition:"),
+      #         fluidRow(column(4,
+      #                         textInput(inputId = "event_input", label = "Please Input Event Name"),
+      #                         actionButton(inputId = "event_add", label = "Add Event")),
+      #                  fluidRow(column(3, dataTableOutput("event_table")))
+      #         )
+      #         ),
+      
       tabItem(tabName = "event",
-              h2("Select Events for Competition:"),
+              h2("Competition Events"),
               fluidRow(column(4,
-                              textInput(inputId = "event_input", label = "Please Input Event Name"),
-                              actionButton(inputId = "event_add", label = "Add Event")),
-                       fluidRow(column(3, dataTableOutput("event_table")))
-              )
-              ),
+                       uiOutput("event_action_buttons")),
+                       
+                       column(3, dataTableOutput("event_table"))
+                     
+              )),
       
       tabItem(tabName = "score",
               h2("Input Competitor's Score:")
@@ -81,8 +98,10 @@ ui <- dashboardPage(
       
     )
   )
-  
 )
+  
+  
+
 
 server <- function(input, output, session) {
   
@@ -206,10 +225,12 @@ server <- function(input, output, session) {
     updateTextInput(session = session, inputId = "division_input", label = "Please Input Division Name",
                     value = "")
     
+    if(!is.null(input$verify_division_save)){
+    
     updateSelectizeInput(session = session, inputId = "division",
                          choices = division_info$Division, selected = NULL)
     
-    
+    }
     }
     
   })
@@ -218,12 +239,23 @@ observeEvent(input$update_competitor, {
   
   # browser()
   
+  if(is.null(input$verify_division_save)){
+    
+    confirmSweetAlert(session = session,
+                      inputId = "require_division_confirm",
+                      title = "Please finalize ALL divisions first!",
+                      type = "warning",
+                      btn_labels = "OK!",
+                      danger_mode = T)
+    
+  }else{
+  
   if(is.null(input$division)) {
     
     confirmSweetAlert(session = session, 
                       inputId = "no_division",
                       title = "Please input division!",
-                      text = "If you haven't created the divisions, please do so.",
+                      # text = "If you haven't created the divisions, please do so.",
                       type = "warning",
                       btn_labels = "OK!",
                       danger_mode = T)
@@ -408,6 +440,7 @@ observeEvent(input$update_competitor, {
   output$competitor_table <- renderDataTable(comp_info, rownames = F, editable = T, selection = "none")
     }
   }
+}
   
   updateTextInput(session = session, inputId = "first_name", label = "First Name", value = "")
   updateTextInput(session = session, inputId = "last_name", label = "Last Name", value = "")
@@ -598,8 +631,21 @@ observeEvent(input$division_table_cell_edit, {
   
   output$division_table <- renderDataTable(division_info, rownames = F, editable = T, selection = "none")
   
-  updateSelectizeInput(session = session, inputId = "division",
-                       choices = division_info$Division, selected = NULL)
+  if(is.null(input$verify_division_save)) {
+    
+   
+  }else{
+    
+    if(input$verify_division_save == F) {
+      
+    }else{
+
+      updateSelectizeInput(session = session, inputId = "division",
+                           choices = division_info$Division, selected = NULL)
+      
+      
+    }
+  }
   
  if(input$division_table_cell_edit$value == "") {
    
@@ -714,13 +760,21 @@ observeEvent(input$competitor_table_cell_edit, {
   # you don't need to worry about a character being numeric,
   # so everything should work great. Push it across the board.
   
-  # competitor_edit_info = input$competitor_table_cell_edit
+  competitor_edit_info = input$competitor_table_cell_edit
   # # str(div_edit_info)
   # i = competitor_edit_info$row
   # j = competitor_edit_info$col
   # v = competitor_edit_info$value
   # browser()
   # div_as_character <- as.character(division_info[i, 1])
+  
+  # if(competitor_edit_info$col == 2) {
+  #   
+  #   confirmSweetAlert(session = session,
+  #                     inputId = "no_remove_division",
+  #                     text = "Please do not remove division")
+  #   
+  # }
   
   if(input$competitor_table_cell_edit$value == "") {
     
@@ -755,6 +809,27 @@ observeEvent(input$competitor_table_cell_edit, {
     #                   danger_mode = T)
 
   # }else{
+    
+    if(j == 2) {
+      
+      comp_as_character <- as.character(comp_info[i, j + 1])
+      comp_info[i, j + 1] <<- DT::coerceValue(comp_as_character, comp_as_character)
+      replaceData(competitor_proxy, comp_info, resetPaging = FALSE)
+      
+      # browser()
+      
+      output$competitor_table <- renderDataTable(comp_info, rownames =F, editable = T, selection = "none")
+      
+      
+      confirmSweetAlert(session = session, 
+                        inputId = "division_edit_refuse",
+                        title = "Please do not edit division!",
+                        text = "If you want a different division, delete competitor and reinput information.",
+                        type = "warning",
+                        btn_labels = "OK!",
+                        danger_mode = T)
+      
+    }else{
   
   comp_info[i, j + 1] <<- coerceValue(v, as.character(comp_info[i, j + 1]))
   replaceData(competitor_proxy, comp_info, resetPaging = FALSE)
@@ -787,7 +862,7 @@ observeEvent(input$competitor_table_cell_edit, {
                       btn_labels = "OK!", 
                       danger_mode = T)
     
-  # }
+  }
   }
 })
 
@@ -804,6 +879,8 @@ observeEvent(input$remove_entire_competitor_line, {
   v = comp_edit_info$value
   
   if(input$remove_entire_competitor_line == T){
+    
+    # if(j == 2)
     
     comp_info[i, j + 1] <<- coerceValue(v, as.character(comp_info[i, j + 1]))
     replaceData(competitor_proxy, comp_info, resetPaging = FALSE)
@@ -845,6 +922,149 @@ observeEvent(input$remove_entire_competitor_line, {
                       btn_labels = "OK!",
                       danger_mode = T)
     
+  }
+  
+})
+
+observeEvent(input$division_save, {
+  
+ confirmSweetAlert(session = session, 
+                   inputId = "verify_division_save",
+                   title = "Do you want to finalize the divisions?",
+                   text = "(You will not be able to make any additions or revisions)",
+                   type = "info",
+                   btn_labels = c("No", "Yes"),
+                   danger_mode = T
+                   )
+  
+})
+
+observeEvent(input$verify_division_save, {
+
+  # browser()
+
+  if(input$verify_division_save == T) {
+
+    # hideTab(inputId = "division_input_hide", target = input$division_input)
+    # hideTab(inputId = "division_add_hide", target = input$division_add)
+    output$division_table <- renderDataTable(division_info, rownames = F)
+
+    # confirmSweetAlert(session = session,
+    #                   inputId = "division_finalize_success",
+    #                   title = "Divisions successfully finalized!",
+    #                   text = "If you need to add / edit a division, please restart App.",
+    #                   type = "success",
+    #                   btn_labels = "OK!",
+    #                   danger_mode = T)
+
+  }
+
+})
+
+# observeEvent(!is.null(input$verify_division_save), {
+#   
+#   browser()
+#   
+# })
+
+output$division_action_buttons <- renderUI({
+  
+  if(is.null(input$verify_division_save)) {
+    
+    tagList(
+    
+    column(9,
+    textInput(inputId = "division_input", label = "Please Input Division Name"),
+    actionButton(inputId = "division_add", label = "Add Division"),
+    actionButton(inputId = "division_save", label = "Finalize Divisions")
+    ))
+    
+  }else{
+    
+    if(input$verify_division_save == F) {
+      
+      tagList(
+        
+        column(9,
+               textInput(inputId = "division_input", label = "Please Input Division Name"),
+               actionButton(inputId = "division_add", label = "Add Division"),
+               actionButton(inputId = "division_save", label = "Finalize Divisions")
+        ))
+      
+    }else{
+    
+    tagList(
+    h3("All Competition divisions:")
+    )
+    
+    # confirmSweetAlert(session = session,
+    #                   inputId = "notify_division_stop",
+    #                   title = "All divisions have been finalized!",
+    #                   text = "If you need to edit or add a division, please restart the app.",
+    #                   type = "success",
+    #                   btn_labels = "OK!",
+    #                   danger_mode = T)
+    }
+  }
+  
+})
+
+output$event_action_buttons <- renderUI({
+  
+  if(is.null(input$verify_event_save)) {
+    
+    tagList(
+      
+      column(9,
+             textInput(inputId = "event_input", label = "Please Input Event Name"),
+             actionButton(inputId = "event_add", label = "Add Event"),
+             actionButton(inputId = "event_save", label = "Finalize Events")
+      ))
+    
+  }else{
+    
+    if(input$verify_event_save == F) {
+      
+      tagList(
+        
+        column(9,
+               textInput(inputId = "event_input", label = "Please Input Event Name"),
+               actionButton(inputId = "event_add", label = "Add Event"),
+               actionButton(inputId = "event_save", label = "Finalize Events")
+        ))
+      
+    }else{
+      
+      tagList(
+        h3("All Competition events:")
+      )
+      
+  }
+  }
+  
+})
+
+observeEvent(input$event_save, {
+  
+  confirmSweetAlert(session = session, 
+                    inputId = "verify_event_save",
+                    title = "Do you want to finalize the events?",
+                    text = "(You will not be able to make any additions or revisions)",
+                    type = "info",
+                    btn_labels = c("No", "Yes"),
+                    danger_mode = T
+  )
+  
+})
+
+observeEvent(input$verify_event_save, {
+  
+  if(input$verify_event_save == T) {
+    
+    output$event_table <- renderDataTable(event_info, rownames = F)
+  
+    # browser()
+     
   }
   
 })
