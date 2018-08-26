@@ -49,14 +49,15 @@ ui <- dashboardPage(
               h2("Input Competitor Information:"),
                fluidRow(
                  column(4,
-                textInput(inputId = "first_name", label = "First Name"),
-                textInput(inputId = "last_name", label = "Last Name"),
-                # radioButtons(inputId = "division", label = "Division", choices = c("WLW", "WOW", "MLW", "MOW"),
-                #              selected = "WLW"),
-                selectizeInput(inputId = "division", label = "Division", choices = NULL, multiple = T),
-              actionButton(inputId = "update_competitor", label = "Add Competitor")
+                        uiOutput("competitor_action_buttons")
+                # textInput(inputId = "first_name", label = "First Name"),
+                # textInput(inputId = "last_name", label = "Last Name"),
+                # # radioButtons(inputId = "division", label = "Division", choices = c("WLW", "WOW", "MLW", "MOW"),
+                # #              selected = "WLW"),
+                # selectizeInput(inputId = "division", label = "Division", choices = NULL, multiple = T),
+                # actionButton(inputId = "update_competitor", label = "Add Competitor")
                ),
-              fluidRow( 
+              fluidRow(
               column(3, dataTableOutput("competitor_table"))
               # # )
                ))),
@@ -948,14 +949,17 @@ observeEvent(input$verify_division_save, {
     # hideTab(inputId = "division_input_hide", target = input$division_input)
     # hideTab(inputId = "division_add_hide", target = input$division_add)
     output$division_table <- renderDataTable(division_info, rownames = F)
+    
+    updateSelectizeInput(session = session, inputId = "division",
+                         choices = division_info$Division, selected = NULL)
 
-    # confirmSweetAlert(session = session,
-    #                   inputId = "division_finalize_success",
-    #                   title = "Divisions successfully finalized!",
-    #                   text = "If you need to add / edit a division, please restart App.",
-    #                   type = "success",
-    #                   btn_labels = "OK!",
-    #                   danger_mode = T)
+    confirmSweetAlert(session = session,
+                      inputId = "division_finalize_success",
+                      title = "Divisions successfully finalized!",
+                      text = "If you need to add / edit a division, please restart App.",
+                      type = "success",
+                      btn_labels = "OK!",
+                      danger_mode = T)
 
   }
 
@@ -1062,9 +1066,114 @@ observeEvent(input$verify_event_save, {
   if(input$verify_event_save == T) {
     
     output$event_table <- renderDataTable(event_info, rownames = F)
+    
+    confirmSweetAlert(session = session,
+                      inputId = "event_finalize_success",
+                      title = "Eventss successfully finalized!",
+                      text = "If you need to add / edit an event, please restart App.",
+                      type = "success",
+                      btn_labels = "OK!",
+                      danger_mode = T)
   
     # browser()
      
+  }
+  
+})
+
+output$competitor_action_buttons <- renderUI({
+  
+  if(is.null(input$verify_competitor_save)) {
+    
+  if(!is.null(input$verify_division_save)) {
+    
+    tagList(
+      
+      column(9,
+             
+             textInput(inputId = "first_name", label = "First Name"),
+             textInput(inputId = "last_name", label = "Last Name"),
+             # radioButtons(inputId = "division", label = "Division", choices = c("WLW", "WOW", "MLW", "MOW"),
+             #              selected = "WLW"),
+             selectizeInput(inputId = "division", label = "Division", choices = division_info$Division, multiple = T),
+             actionButton(inputId = "update_competitor", label = "Add Competitor"),
+             actionButton(inputId = "competitor_save", label = "Finalize Competitors")
+      ))
+    
+  }else{
+    
+    tagList(
+      
+      column(9,
+             
+             textInput(inputId = "first_name", label = "First Name"),
+             textInput(inputId = "last_name", label = "Last Name"),
+             # radioButtons(inputId = "division", label = "Division", choices = c("WLW", "WOW", "MLW", "MOW"),
+             #              selected = "WLW"),
+             selectizeInput(inputId = "division", label = "Division", choices = NULL, multiple = T),
+             actionButton(inputId = "update_competitor", label = "Add Competitor"),
+             actionButton(inputId = "competitor_save", label = "Finalize Competitors")
+      ))
+    
+  }
+    
+  }else{
+    
+    if(input$verify_competitor_save == F) {
+      
+      tagList(
+        
+        column(9,
+               
+               textInput(inputId = "first_name", label = "First Name"),
+               textInput(inputId = "last_name", label = "Last Name"),
+               # radioButtons(inputId = "division", label = "Division", choices = c("WLW", "WOW", "MLW", "MOW"),
+               #              selected = "WLW"),
+               selectizeInput(inputId = "division", label = "Division", choices = NULL, multiple = T),
+               actionButton(inputId = "update_competitor", label = "Add Competitor"),
+               actionButton(inputId = "competitor_save", label = "Finalize Competitors")
+        ))
+      
+    }else{
+      
+      tagList(
+        h3("All Competitors:")
+      )
+      
+    }
+  }
+  
+})
+
+observeEvent(input$competitor_save, {
+  
+  confirmSweetAlert(session = session, 
+                    inputId = "verify_competitor_save",
+                    title = "Do you want to finalize the competitor information?",
+                    text = "(You will not be able to make any additions or revisions)",
+                    type = "info",
+                    btn_labels = c("No", "Yes"),
+                    danger_mode = T
+  )
+  
+})
+
+observeEvent(input$verify_competitor_save, {
+  
+  if(input$verify_competitor_save == T) {
+    
+    output$competitor_table <- renderDataTable(comp_info, rownames = F)
+    
+    confirmSweetAlert(session = session,
+                      inputId = "competitor_finalize_success",
+                      title = "Competitors successfully finalized!",
+                      text = "If you need to add / edit a competitor, please restart App.",
+                      type = "success",
+                      btn_labels = "OK!",
+                      danger_mode = T)
+    
+    # browser()
+    
   }
   
 })
